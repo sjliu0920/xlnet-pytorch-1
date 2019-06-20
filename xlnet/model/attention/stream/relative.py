@@ -10,28 +10,11 @@ class RelativeAttention(nn.Module):
 
     def forward(self, q_head, k_head_h, v_head_h, k_head_r, seg_embed, seg_mat,
                 r_w_bias, r_r_bias, r_s_bias, attn_mask=None, scale=1):
-        """
-
-        :param q_head:
-        :param k_head_h:
-        :param v_head_h:
-        :param k_head_r:
-        :param seg_embed:
-        :param seg_mat:
-        :param r_w_bias:
-        :param r_r_bias:
-        :param r_s_bias:
-        :param attn_mask:
-        :param scale:
-        :return:
-        """
-
         # content based attention score
         ac = torch.einsum('ibnd,jbnd->ijbn', q_head + r_w_bias, k_head_h)
 
         # position based attention score
         bd = torch.einsum('ibnd,jbnd->ijbn', q_head + r_r_bias, k_head_r)
-
         bd = self.rel_shift(bd, klen=ac.size(1))
 
         # segment based attention score

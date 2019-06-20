@@ -21,4 +21,3 @@ class AbsoluteAttention(nn.Module):
 
         attn_vec = torch.einsum('ijbn,jbnd->ibnd', attn_prob, v_head)
         return attn_vec
-

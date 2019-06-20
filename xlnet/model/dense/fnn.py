@@ -8,11 +8,11 @@ class PositionWisedFNN(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.layer_1 = nn.Linear(config.model.hidden_size, config.model.intermediate_size)
-        self.layer_2 = nn.Linear(config.model.hidden_size, config.model.hiden_size)
+        self.layer_2 = nn.Linear(config.model.intermediate_size, config.model.hiden_size)
 
         self.activation = get_activation(config)
         self.dropout = nn.Dropout(config.model.dropout_prob)
-        self.layer_norm = nn.LayerNorm(normalized_shape=self.layer_1.weight.size())
+        self.layer_norm = nn.LayerNorm(config.model.hidden_size)
 
     def forward(self, input_x: torch.Tensor) -> torch.Tensor:
         x = self.layer_1(input_x)
