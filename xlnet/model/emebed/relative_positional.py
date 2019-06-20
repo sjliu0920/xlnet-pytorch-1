@@ -4,7 +4,7 @@ import torch.nn as nn
 from .positional import PositionEmbedding
 
 
-class RelativePositionalEnbedding(nn.Module):
+class RelativePositionalEmbedding(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.hidden_size = config.model.hidden_size
