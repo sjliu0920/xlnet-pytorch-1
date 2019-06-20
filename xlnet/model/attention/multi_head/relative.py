@@ -3,6 +3,7 @@ import torch
 from xlnet.model.attention.core.head import HeadAttention, HeadProjection
 from xlnet.model.attention.stream.relative import RelativeAttention
 from xlnet.model.attention.core.post import PostAttention
+
 from xlnet.model.transformer.bias import TransformerXLBias
 
 
@@ -13,6 +14,7 @@ class RelativeMultiHeadAttention(HeadAttention, RelativeAttention, PostAttention
         self.r = HeadProjection(config)
 
     def forward(self, h, r, seg_mat, seg_embed, attn_mask, mems):
+
         """Multi-head attention with relative positional encoding."""
 
         scale = 1 / (self.config.model.head_dim ** 0.5)

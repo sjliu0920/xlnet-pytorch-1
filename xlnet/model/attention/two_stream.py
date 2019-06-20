@@ -4,6 +4,7 @@ from .core.head import HeadAttention, HeadProjection
 from .core.post import PostAttention
 from .stream.relative import RelativeAttention
 
+
 from xlnet.model.transformer.bias import TransformerXLBias
 
 
