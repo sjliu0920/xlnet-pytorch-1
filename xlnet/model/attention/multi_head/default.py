@@ -5,9 +5,7 @@ from xlnet.model.attention.core.head import HeadAttention
 
 class MultiHeadAttention(HeadAttention, PostAttention, AbsoluteAttention):
     def __init__(self, config):
-        HeadAttention.__init__(self, config)
-        PostAttention.__init__(self, config)
-        AbsoluteAttention.__init__(self, config)
+        super().__init__(config)
 
     def forward(self, q, k, v, attn_mask, scale, residual=True):
         q_head, k_head, v_head = HeadAttention.forward(self, q, k, v)

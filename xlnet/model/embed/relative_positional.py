@@ -9,16 +9,20 @@ class RelativePositionalEmbedding(nn.Module):
         super().__init__()
         self.hidden_size = config.model.hidden_size
         self.positional_embed = PositionEmbedding()
+        self.attn_type = config.model.attn_type
+        self.is_bidirectional = config.model.is_bidirectional
+        self.clamp_len = config.data.clamp_len
 
-    def forward(self, qlen, klen, clamp_len, attn_type, is_bidirectional: bool, batch_size: int = None):
+    def forward(self, qlen, klen, batch_size: int = None):
         frequency_seq = torch.range(0, self.hidden_size, 2.0)
         inverse_frequency = (1 / (10000 ** (frequency_seq / self.hidden_size))).float()
 
-        if attn_type not in ['bi', 'uni']:
-            raise ValueError(f'Unknown `attn_type` {attn_type}')
+        if self.attn_type not in ['bi', 'uni']:
+            raise ValueError(f'Unknown `attn_type` {self.attn_type}')
 
-        begin, end = klen, -qlen if attn_type == 'bi' else -1
-        pos_embed = self.get_positional_embed(is_bidirectional, inverse_frequency, begin, end, clamp_len, batch_size)
+        begin, end = klen, -qlen if self.attn_type == 'bi' else -1
+        pos_embed = self.get_positional_embed(self.is_bidirectional, inverse_frequency, begin, end,
+                                              self.clamp_len, batch_size)
         return pos_embed
 
     def get_positional_embed(self, is_bidirectional, inv_freq, begin, end, clamp_len, batch_size):

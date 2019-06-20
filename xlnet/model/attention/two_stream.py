@@ -5,17 +5,18 @@ from .core.post import PostAttention
 from .stream.relative import RelativeAttention
 
 
+from xlnet.model.transformer.bias import TransformerXLBias
+
+
 class TwoStreamRelativeAttention(HeadAttention, RelativeAttention, PostAttention):
-    def __init__(self, config):
-        HeadAttention.__init__(self, config)
-        RelativeAttention.__init__(self, config)
-        PostAttention.__init__(self, config)
+    def __init__(self, config, bias: TransformerXLBias):
+        super().__init__(config, bias)
 
         self.config = config
         self.r = HeadProjection(config)
+        self.bias = bias
 
-    def forward(self, h, g, r, mems, r_w_bias, r_r_bias, seg_mat, r_s_bias,
-                seg_embed, attn_mask_h, attn_mask_g, target_mapping):
+    def forward(self, h, g, r, mems, seg_mat, seg_embed, attn_mask_h, attn_mask_g, target_mapping):
         scale = 1 / (self.config.model.head_dim ** 0.5)
         cat = torch.cat([mems, h], 0) if mems is not None and len(mems) > 1 else h
 
@@ -28,8 +29,7 @@ class TwoStreamRelativeAttention(HeadAttention, RelativeAttention, PostAttention
         # -------h-stream-------
         # core attention ops
         attn_vec_h = RelativeAttention.forward(self, q_head_h, k_head_h, v_head_h, k_head_r,
-                                               seg_embed, seg_mat, r_w_bias,
-                                               r_r_bias, r_s_bias, attn_mask_h, scale)
+                                               seg_embed, seg_mat, attn_mask_h, scale)
 
         # post processing
         output_h = PostAttention.forward(self, h, attn_vec_h)
@@ -42,8 +42,8 @@ class TwoStreamRelativeAttention(HeadAttention, RelativeAttention, PostAttention
         if target_mapping is not None:
             q_head_g = torch.einsum('mbnd,mlb->lbnd', q_head_g, target_mapping)
 
-        attn_vec_g = RelativeAttention.forward(self, q_head_g, k_head_h, v_head_h, k_head_r, seg_embed, seg_mat,
-                                               r_w_bias, r_r_bias, r_s_bias, attn_mask_g, scale)
+        attn_vec_g = RelativeAttention.forward(self, q_head_g, k_head_h, v_head_h, k_head_r,
+                                               seg_embed, seg_mat, attn_mask_g, scale)
 
         if target_mapping is not None:
             attn_vec_g = torch.einsum('lbnd,mlb->mbnd', attn_vec_g, target_mapping)
