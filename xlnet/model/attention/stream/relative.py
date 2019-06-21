@@ -2,27 +2,26 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as fnn
 
-
-from xlnet.model.transformer.bias import TransformerXLBias
+from xlnet.model.transformer.variable import TransformerLayerVariable
 
 
 class RelativeAttention(nn.Module):
-    def __init__(self, config, bias: TransformerXLBias):
+    def __init__(self, config, variable: TransformerLayerVariable):
         super().__init__()
         self.dropout = nn.Dropout(config.model.dropout_prob)
-        self.bias = bias
+        self.variable = variable
 
-    def forward(self, q_head, k_head_h, v_head_h, k_head_r, seg_embed, seg_mat, attn_mask=None, scale=1):
+    def forward(self, q_head, k_head_h, v_head_h, k_head_r, seg_mat, attn_mask=None, scale=1):
         # content based attention score
-        ac = torch.einsum('ibnd,jbnd->ijbn', q_head + self.bias.r_w_bias, k_head_h)
+        ac = torch.einsum('ibnd,jbnd->ijbn', q_head + self.variable.r_w_bias, k_head_h)
 
         # position based attention score
-        bd = torch.einsum('ibnd,jbnd->ijbn', q_head + self.bias.r_r_bias, k_head_r)
+        bd = torch.einsum('ibnd,jbnd->ijbn', q_head + self.variable.r_r_bias, k_head_r)
         bd = self.rel_shift(bd, klen=ac.size(1))
 
         # segment based attention score
         if seg_mat is not None:
-            ef = torch.einsum('ibnd,snd->ibns', q_head + self.bias.r_s_bias, seg_embed)
+            ef = torch.einsum('ibnd,snd->ibns', q_head + self.variable.r_s_bias, self.variable.seg_embed)
             ef = torch.einsum('ijbs,ibns->ijbn', seg_mat, ef)
         else:
             ef = 0
