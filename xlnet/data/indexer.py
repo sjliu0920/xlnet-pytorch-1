@@ -41,7 +41,7 @@ class TokenIndexer:
                 new_pieces.append(piece)
         return new_pieces
 
-    def decode(self, encoded_ids: List[int], return_piece: bool=False) -> Union[str, List[str]]:
+    def decode(self, encoded_ids: List[int], return_piece: bool=True) -> Union[str, List[str]]:
         """Decode encoded ids. If `return_piece` is True, return pieces (List[str])."""
         if return_piece:
             return [self.spm_model.IdToPiece(encoded_id) for encoded_id in encoded_ids]
