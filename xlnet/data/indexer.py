@@ -1,3 +1,7 @@
+"""
+Originally based on https://github.com/zihangdai/xlnet/blob/master/prepro_utils.py
+"""
+
 from typing import List, Union
 
 import sentencepiece as spm
