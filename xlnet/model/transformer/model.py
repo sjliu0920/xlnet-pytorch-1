@@ -1,15 +1,15 @@
 import torch
 import torch.nn as nn
 
-from typing import Tuple
-
 from xlnet.model.utils.mask import MaskingUtil
 from xlnet.model.embed.relative_positional import RelativePositionalEmbedding
 from xlnet.model.transformer.variable import TransformerLayerVariable, TransformerVariable
 from xlnet.model.transformer.layer import TransformerLayer
 
 
-class Transformer(TransformerVariable):
+class TransformerXL(TransformerVariable):
+    """TransformerXL Class"""
+
     def __init__(self, config):
         super().__init__(config)
         self.config = config
@@ -20,24 +20,20 @@ class Transformer(TransformerVariable):
         self.positional_embedding = RelativePositionalEmbedding(config)
 
         self.dropout = nn.Dropout(config.model.dropout_prob)
-        self.mask_embed = nn.Parameter(torch.rand([1, 1, config.model.hidden_size], dtype=torch.float))
+        self.mask_embed = nn.Parameter(
+            torch.rand([1, 1, config.model.hidden_size], dtype=torch.float)
+        )
 
         self.layers = nn.ModuleList([
             TransformerLayer(config, variable=TransformerLayerVariable(config, self, layer_id))
             for layer_id in range(self.config.model.num_layers)
         ])
 
-    def __getattr__(self, item):
-        split_items = item.split("layer_")
-        if len(split_items) == 2:
-            return self.layers[int(split_items[1])]
-        raise AttributeError(f"module {__name__} has no attribute {item}")
-
     def forward(self, inp_k, segment_id, input_mask, perm_mask, mems=None,
                 inp_q=None, target_mapping=None, reuse_len: int = None):
         # get size of inputs and preparation for models
         batch_size, query_len, memory_len, klen, mems = self.forward_prefix(
-            inp_k, mems, input_mask, perm_mask
+            inp_k, mems
         )
 
         # make attention mask using input sizes
@@ -81,7 +77,15 @@ class Transformer(TransformerVariable):
         output = self.dropout(output_target)
         return output, new_mems
 
-    def forward_prefix(self, inp_k, mems, input_mask, perm_mask):
+    def forward_prefix(self, inp_k, mems):
+        """
+
+        :param inp_k:
+        :param mems:
+        :param input_mask:
+        :param perm_mask:
+        :return:
+        """
         batch_size, query_len = inp_k.size(1), inp_k.size(0)
         memory_len = mems[0].size(0) if mems else 0
         klen = memory_len + query_len
@@ -90,11 +94,24 @@ class Transformer(TransformerVariable):
         return batch_size, query_len, memory_len, klen, mems
 
     def get_position_embed(self, query_len, key_len):
+        """
+
+        :param query_len:
+        :param key_len:
+        :return:
+        """
         pos_embed = self.positional_embedding.forward(query_len, key_len)
         pos_embed = self.dropout.forward(pos_embed)
         return pos_embed
 
     def get_segment_matrix(self, seg_id, mlen, batch_size):
+        """
+
+        :param seg_id:
+        :param mlen:
+        :param batch_size:
+        :return:
+        """
         mem_pad = torch.zeros(mlen, batch_size)
         cat_ids = torch.cat([mem_pad, seg_id], 0)
         seg_mat = ~(torch.eq(seg_id[None, :], (cat_ids[None, :]))).float()
@@ -102,10 +119,18 @@ class Transformer(TransformerVariable):
         return seg_mat
 
     def get_word_embed(self, input_k, batch_size, input_q=None, target_mapping=None):
+        """
+
+        :param input_k:
+        :param batch_size:
+        :param input_q:
+        :param target_mapping:
+        :return:
+        """
         word_emb_k = self.word_embedding.forward(input_k)
+        output_h = self.dropout(word_emb_k)
 
         if input_q is None:
-            output_h = self.dropout(word_emb_k)
             return output_h
 
         if target_mapping is not None:
@@ -118,7 +143,14 @@ class Transformer(TransformerVariable):
         return output_h, output_g
 
     def _cache_mem(self, curr_out, prev_mem, mem_len, reuse_len=None):
-        """cache hidden states into memory."""
+        """
+
+        :param curr_out:
+        :param prev_mem:
+        :param mem_len:
+        :param reuse_len:
+        :return:
+        """
         if mem_len is None or mem_len == 0:
             return None
         else:
@@ -132,3 +164,9 @@ class Transformer(TransformerVariable):
 
         new_mem.requires_grad = False
         return new_mem
+
+    def __getattr__(self, item):
+        split_items = item.split("layer_")
+        if len(split_items) == 2:
+            return self.layers[int(split_items[1])]
+        raise AttributeError(f"module {__name__} has no attribute {item}")
