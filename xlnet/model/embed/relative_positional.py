@@ -38,6 +38,7 @@ class RelativePositionalEmbedding(nn.Module):
             fwd_pos_seq = torch.clamp(fwd_pos_seq, -clamp_len, clamp_len)
             bwd_pos_seq = torch.clamp(bwd_pos_seq, -clamp_len, clamp_len)
 
+        assert batch_size % 2 == 0
         embed_batch_size = batch_size // 2 if batch_size else None
         fwd_pos_emb = self.positional_embed.forward(fwd_pos_seq, inv_freq, embed_batch_size)
         bwd_pos_emb = self.positional_embed.forward(bwd_pos_seq, inv_freq, embed_batch_size)
