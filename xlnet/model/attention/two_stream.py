@@ -1,10 +1,10 @@
 import torch
 
+from xlnet.model.transformer.variable import TransformerLayerVariable
+
 from .core.head import HeadAttention, HeadProjection
 from .core.post import PostAttention
 from .stream.relative import RelativeAttention
-
-from xlnet.model.transformer.variable import TransformerLayerVariable
 
 
 class TwoStreamRelativeAttention(HeadAttention, RelativeAttention, PostAttention):
@@ -26,9 +26,14 @@ class TwoStreamRelativeAttention(HeadAttention, RelativeAttention, PostAttention
         # -------h-stream-------
         # core attention ops
         attn_vec_h = RelativeAttention.forward(
-            self, q_head=q_head_h, k_head_h=k_head_h,
-            v_head_h=v_head_h, k_head_r=k_head_r,
-            seg_mat=seg_mat, attn_mask=attn_mask_h, scale=scale
+            self,
+            q_head=q_head_h,
+            k_head_h=k_head_h,
+            v_head_h=v_head_h,
+            k_head_r=k_head_r,
+            seg_mat=seg_mat,
+            attn_mask=attn_mask_h,
+            scale=scale,
         )
 
         # post processing
@@ -40,16 +45,21 @@ class TwoStreamRelativeAttention(HeadAttention, RelativeAttention, PostAttention
 
         # core attention ops
         if target_mapping is not None:
-            q_head_g = torch.einsum('mbnd,mlb->lbnd', q_head_g, target_mapping)
+            q_head_g = torch.einsum("mbnd,mlb->lbnd", q_head_g, target_mapping)
 
         attn_vec_g = RelativeAttention.forward(
-            self, q_head=q_head_g, k_head_h=k_head_h,
-            v_head_h=v_head_h, k_head_r=k_head_r,
-            seg_mat=seg_mat, attn_mask=attn_mask_g, scale=scale
+            self,
+            q_head=q_head_g,
+            k_head_h=k_head_h,
+            v_head_h=v_head_h,
+            k_head_r=k_head_r,
+            seg_mat=seg_mat,
+            attn_mask=attn_mask_g,
+            scale=scale,
         )
 
         if target_mapping is not None:
-            attn_vec_g = torch.einsum('lbnd,mlb->mbnd', attn_vec_g, target_mapping)
+            attn_vec_g = torch.einsum("lbnd,mlb->mbnd", attn_vec_g, target_mapping)
 
         # post processing
         output_g = self.post_attn(g, attn_vec_g)

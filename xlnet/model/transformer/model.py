@@ -1,10 +1,13 @@
 import torch
 import torch.nn as nn
 
-from xlnet.model.utils.mask import MaskingUtil
 from xlnet.model.embed.relative_positional import RelativePositionalEmbedding
-from xlnet.model.transformer.variable import TransformerLayerVariable, TransformerVariable
 from xlnet.model.transformer.layer import TransformerLayer
+from xlnet.model.transformer.variable import (
+    TransformerLayerVariable,
+    TransformerVariable,
+)
+from xlnet.model.utils.mask import MaskingUtil
 
 
 class TransformerXL(TransformerVariable):
@@ -16,7 +19,9 @@ class TransformerXL(TransformerVariable):
 
         self.mask_util = MaskingUtil(config)
 
-        self.word_embedding = nn.Embedding(config.model.vocab_size, config.model.hidden_size)
+        self.word_embedding = nn.Embedding(
+            config.model.vocab_size, config.model.hidden_size
+        )
         self.positional_embedding = RelativePositionalEmbedding(config)
 
         self.dropout = nn.Dropout(config.model.dropout_prob)
@@ -24,29 +29,44 @@ class TransformerXL(TransformerVariable):
             torch.rand([1, 1, config.model.hidden_size], dtype=torch.float)
         )
 
-        self.layers = nn.ModuleList([
-            TransformerLayer(config, variable=TransformerLayerVariable(config, self, layer_id))
-            for layer_id in range(self.config.model.num_layers)
-        ])
-
-    def forward(self, inp_k, segment_id, input_mask, perm_mask, mems=None,
-                inp_q=None, target_mapping=None, reuse_len: int = None):
-        # get size of inputs and preparation for models
-        batch_size, query_len, memory_len, klen, mems = self.forward_prefix(
-            inp_k, mems
+        self.layers = nn.ModuleList(
+            [
+                TransformerLayer(
+                    config, variable=TransformerLayerVariable(config, self, layer_id)
+                )
+                for layer_id in range(self.config.model.num_layers)
+            ]
         )
+
+    def forward(
+        self,
+        inp_k,
+        segment_id,
+        input_mask,
+        perm_mask,
+        mems=None,
+        inp_q=None,
+        target_mapping=None,
+        reuse_len: int = None,
+    ):
+        # get size of inputs and preparation for models
+        batch_size, query_len, memory_len, klen, mems = self.forward_prefix(inp_k, mems)
 
         # make attention mask using input sizes
         attn_mask, data_mask, non_tgt_mask = self.mask_util.get_mask(
-            batch_size, query_len,
-            memory_len, input_mask, perm_mask
+            batch_size, query_len, memory_len, input_mask, perm_mask
         )
 
         # get word embedding depends on the input
         if inp_q is not None:
-            output_h, output_g = self.get_word_embed(inp_k, batch_size, target_mapping, inp_q)
+            output_h, output_g = self.get_word_embed(
+                inp_k, batch_size, target_mapping, inp_q
+            )
         else:
-            output_h, output_g = self.get_word_embed(inp_k, batch_size, target_mapping), None
+            output_h, output_g = (
+                self.get_word_embed(inp_k, batch_size, target_mapping),
+                None,
+            )
 
         # get segment matrix and position embedding
         seg_mat = self.get_segment_matrix(segment_id, memory_len, batch_size)
@@ -62,15 +82,22 @@ class TransformerXL(TransformerVariable):
 
             if inp_q is not None:
                 output_h, output_g = layer.forward_with_input_query(
-                    h=output_h, g=output_g,
-                    seg_mat=seg_mat, pos_embed=pos_embed, mem=mems[i],
-                    attn_mask=attn_mask, target_mapping=target_mapping,
-                    non_tgt_mask=non_tgt_mask
+                    h=output_h,
+                    g=output_g,
+                    seg_mat=seg_mat,
+                    pos_embed=pos_embed,
+                    mem=mems[i],
+                    attn_mask=attn_mask,
+                    target_mapping=target_mapping,
+                    non_tgt_mask=non_tgt_mask,
                 )
             else:
                 output_h = layer.forward_without_input_query(
-                    h=output_h, seg_mat=seg_mat, pos_embed=pos_embed,
-                    mem=mems[i], attn_mask=attn_mask
+                    h=output_h,
+                    seg_mat=seg_mat,
+                    pos_embed=pos_embed,
+                    mem=mems[i],
+                    attn_mask=attn_mask,
                 )
 
         output_target = output_g if inp_q is not None else output_h
@@ -137,7 +164,9 @@ class TransformerXL(TransformerVariable):
             word_embed_q = self.mask_embed.repeat(target_mapping.size(0), batch_size, 1)
         else:
             input_q_ext = input_q[:, :, None]
-            word_embed_q = input_q_ext * self.mask_embed + (1 - input_q_ext) * word_emb_k
+            word_embed_q = (
+                input_q_ext * self.mask_embed + (1 - input_q_ext) * word_emb_k
+            )
 
         output_g = self.dropout(word_embed_q)
         return output_h, output_g

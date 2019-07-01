@@ -1,3 +1,4 @@
-from .bias import TransformerXLBias
+from .layer import TransformerLayer
 from .model import TransformerXL
-from .layer import TransformerXLLayer
+
+__all__ = ["TransformerLayer", "TransformerXL"]

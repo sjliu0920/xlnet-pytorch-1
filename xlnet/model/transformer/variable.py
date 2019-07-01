@@ -1,5 +1,5 @@
-import torch.nn as nn
 import torch
+import torch.nn as nn
 
 
 class TransformerVariable(nn.Module):
@@ -14,12 +14,21 @@ class TransformerVariable(nn.Module):
         raise NotImplementedError
 
     def _get_segment_embed(self, config):
-        embed_shape = [config.model.num_layers, 2, config.model.head_num, config.model.head_dim]
+        embed_shape = [
+            config.model.num_layers,
+            2,
+            config.model.head_num,
+            config.model.head_dim,
+        ]
         return nn.Parameter(torch.rand(embed_shape, dtype=torch.float))
 
     def _get_bias_parameter(self, config):
         if config.model.untie_bias:
-            bias_shape = [config.model.num_layers, config.model.head_num, config.model.head_dim]
+            bias_shape = [
+                config.model.num_layers,
+                config.model.head_num,
+                config.model.head_dim,
+            ]
         else:
             bias_shape = [config.model.head_num, config.model.head_dim]
         return nn.Parameter(torch.rand(bias_shape, dtype=torch.float))

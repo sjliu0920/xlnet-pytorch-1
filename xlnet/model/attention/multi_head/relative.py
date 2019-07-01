@@ -1,8 +1,8 @@
 import torch
 
 from xlnet.model.attention.core.head import HeadAttention, HeadProjection
-from xlnet.model.attention.stream.relative import RelativeAttention
 from xlnet.model.attention.core.post import PostAttention
+from xlnet.model.attention.stream.relative import RelativeAttention
 from xlnet.model.transformer.variable import TransformerLayerVariable
 
 
@@ -25,8 +25,16 @@ class RelativeMultiHeadAttention(HeadAttention, RelativeAttention, PostAttention
         k_head_r = self.r.forward(r)
 
         # core attention ops
-        attn_vec = RelativeAttention.forward(self, q_head_h, k_head_h, v_head_h,
-                                             k_head_r, seg_mat, attn_mask, scale=scale)
+        attn_vec = RelativeAttention.forward(
+            self,
+            q_head_h,
+            k_head_h,
+            v_head_h,
+            k_head_r,
+            seg_mat,
+            attn_mask,
+            scale=scale,
+        )
 
         output = PostAttention.forward(self, h, attn_vec)
         return output

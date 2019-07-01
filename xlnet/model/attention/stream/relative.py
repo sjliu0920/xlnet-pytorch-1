@@ -11,18 +11,24 @@ class RelativeAttention(nn.Module):
         self.dropout = nn.Dropout(config.model.dropout_prob)
         self.variable = variable
 
-    def forward(self, q_head, k_head_h, v_head_h, k_head_r, seg_mat, attn_mask=None, scale=1):
+    def forward(
+        self, q_head, k_head_h, v_head_h, k_head_r, seg_mat, attn_mask=None, scale=1
+    ):
         # content based attention score
-        ac = torch.einsum('ibnd,jbnd->ijbn', q_head + self.variable.r_w_bias, k_head_h)
+        ac = torch.einsum("ibnd,jbnd->ijbn", q_head + self.variable.r_w_bias, k_head_h)
 
         # position based attention score
-        bd = torch.einsum('ibnd,jbnd->ijbn', q_head + self.variable.r_r_bias, k_head_r)
+        bd = torch.einsum("ibnd,jbnd->ijbn", q_head + self.variable.r_r_bias, k_head_r)
         bd = self.rel_shift(bd, klen=ac.size(1))
 
         # segment based attention score
         if seg_mat is not None:
-            ef = torch.einsum('ibnd,snd->ibns', q_head + self.variable.r_s_bias, self.variable.seg_embed)
-            ef = torch.einsum('ijbs,ibns->ijbn', seg_mat, ef)
+            ef = torch.einsum(
+                "ibnd,snd->ibns",
+                q_head + self.variable.r_s_bias,
+                self.variable.seg_embed,
+            )
+            ef = torch.einsum("ijbs,ibns->ijbn", seg_mat, ef)
         else:
             ef = 0
 
@@ -37,7 +43,7 @@ class RelativeAttention(nn.Module):
         attn_prob = self.dropout(attn_prob)
 
         # attention output
-        attn_vec = torch.einsum('ijbn,jbnd->ibnd', attn_prob, v_head_h)
+        attn_vec = torch.einsum("ijbn,jbnd->ibnd", attn_prob, v_head_h)
         return attn_vec
 
     def rel_shift(self, x, klen=-1):

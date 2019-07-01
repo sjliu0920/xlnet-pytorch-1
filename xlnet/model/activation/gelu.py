@@ -1,6 +1,8 @@
-import torch.nn as nn
-import torch
 import math
+
+import torch
+import torch.nn as nn
+
 
 """
 GELU code from codertimo/BERT-Pytorch
@@ -13,8 +15,10 @@ class GELU(nn.Module):
     This is a smoother version of the RELU.
     Original paper: https://arxiv.org/abs/1606.08415
     """
+
     def forward(self, x):
-        return 0.5 * x * (1 + torch.tanh(math.sqrt(2 / math.pi) * (x + 0.044715 * torch.pow(x, 3))))
+        eq = torch.tanh(math.sqrt(2 / math.pi) * (x + 0.044715 * torch.pow(x, 3)))
+        return 0.5 * x * (1 + eq)
 
 
 def get_activation(config) -> nn.Module:

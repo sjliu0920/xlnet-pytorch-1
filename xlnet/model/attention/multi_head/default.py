@@ -1,6 +1,6 @@
-from xlnet.model.attention.stream.absolute import AbsoluteAttention
-from xlnet.model.attention.core.post import PostAttention
 from xlnet.model.attention.core.head import HeadAttention
+from xlnet.model.attention.core.post import PostAttention
+from xlnet.model.attention.stream.absolute import AbsoluteAttention
 
 
 class MultiHeadAttention(HeadAttention, PostAttention, AbsoluteAttention):

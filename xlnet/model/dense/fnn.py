@@ -1,5 +1,5 @@
-import torch.nn as nn
 import torch
+import torch.nn as nn
 
 from xlnet.model.activation.gelu import get_activation
 
@@ -7,8 +7,12 @@ from xlnet.model.activation.gelu import get_activation
 class PositionWisedFNN(nn.Module):
     def __init__(self, config):
         super().__init__()
-        self.layer_1 = nn.Linear(config.model.hidden_size, config.model.intermediate_size)
-        self.layer_2 = nn.Linear(config.model.intermediate_size, config.model.hiden_size)
+        self.layer_1 = nn.Linear(
+            config.model.hidden_size, config.model.intermediate_size
+        )
+        self.layer_2 = nn.Linear(
+            config.model.intermediate_size, config.model.hiden_size
+        )
 
         self.activation = get_activation(config)
         self.dropout = nn.Dropout(config.model.dropout_prob)
