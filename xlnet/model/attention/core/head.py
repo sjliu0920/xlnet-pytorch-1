@@ -22,7 +22,16 @@ class HeadAttention(nn.Module):
         self.v = HeadProjection(config)
 
     def forward(self, *inputs):
-        return (
+        q_head, k_head, v_head = (
             model.forward(source)
             for source, model in zip(inputs, [self.q, self.k, self.k])
         )
+        output = HeadAttentionOutput(q_head, k_head, v_head)
+        return output
+
+
+class HeadAttentionOutput:
+    def __init__(self, q_head, k_head, v_head):
+        self.q_head = q_head
+        self.k_head = k_head
+        self.v_head = v_head

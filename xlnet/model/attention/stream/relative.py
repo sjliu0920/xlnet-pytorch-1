@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as fnn
 
+from xlnet.model.attention.core.head import HeadAttentionOutput
 from xlnet.model.transformer.variable import TransformerLayerVariable
 
 
@@ -12,20 +13,31 @@ class RelativeAttention(nn.Module):
         self.variable = variable
 
     def forward(
-        self, q_head, k_head_h, v_head_h, k_head_r, seg_mat, attn_mask=None, scale=1
+        self,
+        head_output: HeadAttentionOutput,
+        k_head_r,
+        seg_mat,
+        attn_mask=None,
+        scale=1,
     ):
         # content based attention score
-        ac = torch.einsum("ibnd,jbnd->ijbn", q_head + self.variable.r_w_bias, k_head_h)
+        ac = torch.einsum(
+            "ibnd,jbnd->ijbn",
+            head_output.q_head + self.variable.r_w_bias,
+            head_output.k_head,
+        )
 
         # position based attention score
-        bd = torch.einsum("ibnd,jbnd->ijbn", q_head + self.variable.r_r_bias, k_head_r)
+        bd = torch.einsum(
+            "ibnd,jbnd->ijbn", head_output.q_head + self.variable.r_r_bias, k_head_r
+        )
         bd = self.rel_shift(bd, klen=ac.size(1))
 
         # segment based attention score
         if seg_mat is not None:
             ef = torch.einsum(
                 "ibnd,snd->ibns",
-                q_head + self.variable.r_s_bias,
+                head_output.q_head + self.variable.r_s_bias,
                 self.variable.seg_embed,
             )
             ef = torch.einsum("ijbs,ibns->ijbn", seg_mat, ef)
@@ -43,7 +55,7 @@ class RelativeAttention(nn.Module):
         attn_prob = self.dropout(attn_prob)
 
         # attention output
-        attn_vec = torch.einsum("ijbn,jbnd->ibnd", attn_prob, v_head_h)
+        attn_vec = torch.einsum("ijbn,jbnd->ibnd", attn_prob, head_output.v_head)
         return attn_vec
 
     def rel_shift(self, x, klen=-1):

@@ -3,10 +3,7 @@ import torch.nn as nn
 
 from xlnet.model.embed.relative_positional import RelativePositionalEmbedding
 from xlnet.model.transformer.layer import TransformerLayer
-from xlnet.model.transformer.variable import (
-    TransformerLayerVariable,
-    TransformerVariable,
-)
+from xlnet.model.transformer.variable import TransformerLayerVariable, TransformerVariable
 from xlnet.model.utils.mask import MaskingUtil
 
 
@@ -49,6 +46,9 @@ class TransformerXL(TransformerVariable):
         target_mapping=None,
         reuse_len: int = None,
     ):
+        # input_q(query) only be used on pre-training
+        is_pre_training = inp_q is not None
+
         # get size of inputs and preparation for models
         batch_size, query_len, memory_len, klen, mems = self.forward_prefix(inp_k, mems)
 
@@ -58,7 +58,7 @@ class TransformerXL(TransformerVariable):
         )
 
         # get word embedding depends on the input
-        if inp_q is not None:
+        if is_pre_training:
             output_h, output_g = self.get_word_embed(
                 inp_k, batch_size, target_mapping, inp_q
             )
@@ -80,8 +80,8 @@ class TransformerXL(TransformerVariable):
             layer: TransformerLayer
             new_mems.append(self._cache_mem(output_h, mems[i], memory_len, reuse_len))
 
-            if inp_q is not None:
-                output_h, output_g = layer.forward_with_input_query(
+            if is_pre_training:
+                output_h, output_g = layer.forward_pretrain(
                     h=output_h,
                     g=output_g,
                     seg_mat=seg_mat,
@@ -92,7 +92,7 @@ class TransformerXL(TransformerVariable):
                     non_tgt_mask=non_tgt_mask,
                 )
             else:
-                output_h = layer.forward_without_input_query(
+                output_h = layer.forward(
                     h=output_h,
                     seg_mat=seg_mat,
                     pos_embed=pos_embed,
@@ -100,7 +100,7 @@ class TransformerXL(TransformerVariable):
                     attn_mask=attn_mask,
                 )
 
-        output_target = output_g if inp_q is not None else output_h
+        output_target = output_g if is_pre_training else output_h
         output = self.dropout(output_target)
         return output, new_mems
 
@@ -157,6 +157,7 @@ class TransformerXL(TransformerVariable):
         word_emb_k = self.word_embedding.forward(input_k)
         output_h = self.dropout(word_emb_k)
 
+        # if it's not the pre-train
         if input_q is None:
             return output_h
 

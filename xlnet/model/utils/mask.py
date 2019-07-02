@@ -1,3 +1,5 @@
+from typing import Union
+
 import torch
 
 
@@ -38,22 +40,25 @@ class MaskingUtil:
     def get_attn_mask(self, qlen, mlen):
         attn_type = self.config.model.attn_type
         if attn_type == "uni":
-            attn_mask = self.create_mask(
-                qlen, mlen, self.config.model.same_attn_length
-            )[:, :, None, None]
+            return self.create_mask(qlen, mlen, self.config.model.same_attn_length)[
+                :, :, None, None
+            ]
         elif attn_type == "bi":
-            attn_mask = None
-        else:
-            raise ValueError(f"Unsupported attention type: {attn_type}")
-        return attn_mask
+            return None
 
-    def get_data_mask(self, input_mask, perm_mask):
+        raise ValueError(f"Unsupported attention type: {attn_type}")
+
+    def get_data_mask(
+        self,
+        input_mask: Union[torch.Tensor, None],
+        perm_mask: Union[torch.Tensor, None],
+    ):
+        # if input mask is exist, combine input mask and permutation mask
         if input_mask is not None:
-            return (
-                input_mask[None] if perm_mask is None else input_mask[None] + perm_mask
-            )
-        if perm_mask is not None:
-            return perm_mask if input_mask is None else None
+            return input_mask if perm_mask is None else input_mask + perm_mask
+
+        # if input mask is not exist, return permutation mask (could be None)
+        return perm_mask
 
     def create_mask(self, qlen, mlen, same_length=False):
         """create causal attention mask."""

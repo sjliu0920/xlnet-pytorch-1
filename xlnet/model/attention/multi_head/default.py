@@ -8,7 +8,9 @@ class MultiHeadAttention(HeadAttention, PostAttention, AbsoluteAttention):
         super().__init__(config)
 
     def forward(self, q, k, v, attn_mask, scale, residual=True):
-        q_head, k_head, v_head = HeadAttention.forward(self, q, k, v)
-        attn_vec = AbsoluteAttention.forward(self, q_head, k, v, attn_mask, scale)
+        head_output = HeadAttention.forward(self, q, k, v)
+        attn_vec = AbsoluteAttention.forward(
+            self, head_output.q_head, k, v, attn_mask, scale
+        )
         output = PostAttention.forward(self, v, attn_vec, residual)
         return output
